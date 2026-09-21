@@ -315,6 +315,7 @@ Connect via the built-in Databricks connector to the workspace's SQL Warehouse â
 cd az-retail-pipe
 git add .
 git commit -m "Document ADF orchestration, Azure DevOps setup, Databricks Repos repoint"
+git pull azure main --no-rebase -m 'sync'
 git push azure main
 ```
 
