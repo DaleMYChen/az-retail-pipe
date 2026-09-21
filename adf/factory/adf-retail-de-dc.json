@@ -1,0 +1,15 @@
+{
+	"name": "adf-retail-de-dc",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "australiaeast",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "2f449f4e-845d-4536-a960-d5dece2dc52f",
+		"tenantId": "1cc13db5-e5ac-4df6-8192-f3fc1db07a2e"
+	}
+}

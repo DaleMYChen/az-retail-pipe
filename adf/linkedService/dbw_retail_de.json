@@ -1,0 +1,12 @@
+{
+	"name": "dbw_retail_de",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405615985153021.1.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/df2f768b-28b8-42ff-be15-7896bd8b9004/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
+		}
+	}
+}
