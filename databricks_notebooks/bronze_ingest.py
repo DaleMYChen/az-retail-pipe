@@ -25,6 +25,10 @@ BRONZE_SCHEMA = f"{CATALOG}.bronze"
 # MAGIC The source data mixes three date formats per the generator
 # MAGIC (`%Y-%m-%d`, `%Y-%m-%d %H:%M:%S`, `%d/%m/%Y`) — `parse_messy_datetime`
 # MAGIC tries each in turn via `coalesce`, so whichever format matches wins.
+# MAGIC
+
+# COMMAND ----------
+
 
 TABLE_CONFIG = {
     "customers": {
@@ -98,6 +102,9 @@ def ingest_table(table_name: str, cfg: dict) -> DataFrame:
 # COMMAND ----------
 
 # MAGIC %md ### Run for every table, write Delta, register in `retail_de.bronze`
+# MAGIC
+
+# COMMAND ----------
 
 for table_name, cfg in TABLE_CONFIG.items():
     bronze_df = ingest_table(table_name, cfg)
@@ -118,6 +125,9 @@ for table_name, cfg in TABLE_CONFIG.items():
 # MAGIC %md ### Quick sanity check
 # MAGIC Confirms row counts and shows a peek at the messiest table
 # MAGIC (`payments`, which carries two parsed datetime columns).
+# MAGIC
+
+# COMMAND ----------
 
 display(spark.sql(f"SELECT * FROM {BRONZE_SCHEMA}.payments LIMIT 10"))
 
