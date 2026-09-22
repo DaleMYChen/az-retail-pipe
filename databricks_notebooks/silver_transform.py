@@ -32,6 +32,10 @@ def write_silver(df, table_name):
 order_items = spark.table(f"{BRONZE}.order_items")
 current_products = spark.table(f"{SILVER}.products_scd2").filter("is_current = true").select("product_id")
 
+
+# lit(True): tag existing products with all True
+# Left join order_items, any order item that matches a valid product ID 
+# will inherit the _product_exists = True value.
 order_items_validated = (
     order_items.withColumn("is_negative_quantity", F.col("quantity") <= 0)
     .withColumn("is_negative_price", F.col("unit_price") <= 0)

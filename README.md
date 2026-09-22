@@ -276,45 +276,42 @@ Note on ordering: this project built Databricks-first, DevOps-last — the right
 A real production setup connects Repos before creating any Job tasks, so this reconciliation step wouldn't exist.
 
 ---
-
 ## 9. Azure DevOps — YAML pipeline
 
-DevOps yaml pipeline: Automate (on merge) manual Save/Publish in ADF and Commit & Push in Databricks Repos. 
+Automates two manual actions from earlier sections: ADF's Save/Publish (§6) and Databricks Repos' Commit & Push / Pull (§8). Triggered on push/merge to `main`.
 
-#### 9.1. Create service connection for DevOps to DBW
+#### 9.1 Service Connection (needed for `DeployADF` only)
+
 ```
-DevOps project setting; new Service Connection 
--> Resource Manager; service principal (auto) 
--> scope: subscription;  resource group: rg-retail-de
--> name: retail-de-service-connection
--> Grant access permissions to all pipelines
+DevOps Project Settings → new Service Connection
+→ Azure Resource Manager; service principal (auto)
+→ scope: subscription; resource group: rg-retail-de
+→ name: retail-de-service-connection
+→ Grant access permission to all pipelines
 ```
 
-Register the DevOps SP with Databricks. 
-<br>
-- Service connection list: manage `retail-de-service-connection`, copy appID. 
-<br>
-`9504eaff-a1e7-4d12-87d9-d00397197493`
-- DBW user setting; Identity and Access - SP add new; Entra ID managed; paste appID. 
-- name: `retail-de-service-connection`; add to DBW. 
+Authenticates `az deployment group create` (ARM template deploy) — federated identity, no stored secret, same no-secret pattern as §3/§6.
 
-DBW repo folder Sharing (permissions): add this SP appID, grant Can Edit. 
+**Vestigial, not actually used**: an earlier attempt registered this same SP with Databricks (Entra ID managed, appID `9504eaff-a1e7-4d12-87d9-d00397197493`) and granted it Can Edit on the `az-retail-pipe` Repos folder, intending `SyncDatabricksRepo` to also authenticate this way. That path proved unreliable — see §9.2 — so `SyncDatabricksRepo` now uses a PAT instead, and this SP registration does nothing for the pipeline anymore. Left in place (harmless), not removed.
+
+#### 9.2 Enabling the two YML jobs
+
+**`DeployADF`** — federated Service Connection auth (as above), runs `az deployment group create` against the ARM template on `adf_publish`.
+
+**`SyncDatabricksRepo`** — **PAT-based auth**  Switched to a Databricks PAT stored as an encrypted DevOps secret pipeline variable (`DATABRICKS_TOKEN`). Task type is plain `script:` (Bash), not `AzureCLI@2` — no Azure login is needed for this job once PAT auth is in play.
+
+PAT: Databricks user Settings → Developer → Access tokens → generate → stored as a **secret** pipeline variable named `DATABRICKS_TOKEN` (Pipeline → Edit → Variables). `workspace get-status` (not `repos list`) is the reliable lookup for an object owned by a different identity than the caller — `repos list` scopes to the caller's own identity root and returned empty for the SP even with Can Edit granted.
 
 
-#### 9.2. Trigger DevOps pipeline
+#### 9.3 Register and trigger
 
-Note previously we have an ADF pipeline
+```
+DevOps Pipelines → New → Azure Repos Git → select repo
+→ Existing Azure Pipelines YAML file → branch: main, path: /azure-pipelines.yml → Run
+```
+First run registers the pipeline as a permanent object (future pushes to `main` trigger it automatically) and executes both jobs.
 
-- DevOps Pipelines create new;  code - Azure Repos Git;
-- select repo;
-- Configure: Existing Azure Pipelines YAML file;
-- Branch: `main`;  path: `/azure-pipelines.yml`;
-- Run. 
-
-The 1st run registers the pipeline as a permanent object in DevOps.
-<br>
-Check DeployADF job: Service Connection's role on RG is Contributor. (Project setting, service connctions roles).
-
+**Status: done.** Both jobs green; `DeployADF`'s ARM template path is `adf_publish/adf-retail-de-dc/ARMTemplateForFactory.json` (nested under the factory-name folder, not branch root).
 
 ---
 
