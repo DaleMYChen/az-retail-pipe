@@ -87,13 +87,17 @@ az storage blob upload-batch \
 ---
 
 ## 3. Unity Catalog setup
+<br>
+**Acccess connector -> Credential + external locations -> Catalog + schemas**
 
-**3.1 Access Connector** (managed identity Databricks uses to reach storage):
+**3.1 Access Connector** (a managed identity Databricks uses to access storage account in the resource group):
 ```bash
 az databricks access-connector create \
   --resource-group rg-retail-de --name ac-retail-de \
   --location australiaeast --identity-type SystemAssigned
 ```
+
+Managed identity: a type of service principal without credential management. 
 
 **3.2 Grant it storage access:**
 ```bash
@@ -106,7 +110,7 @@ az role assignment create \
   --scope "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Storage/storageAccounts/retaildesadc"
 ```
 
-**3.3 In Databricks workspace (Launch Workspace from the portal resource page) → Catalog:**
+**3.3 In Databricks workspace → Catalog:**
 - **Create credential**: `cred-retail-de`, Azure Managed Identity, access connector ID from step 3.1
 - Note: Azure now **auto-creates a metastore** on first workspace — no manual metastore step needed. The auto catalog `dbw_retail_de` has no storage root; don't use it for this project's tables.
 - **Create external location** `ext-catalog-root` → `abfss://catalog-root@retaildesadc.dfs.core.windows.net/` → credential `cred-retail-de`. Force-create through the "File Events" warning — not needed, that's for Auto Loader.
@@ -117,7 +121,7 @@ CREATE CATALOG IF NOT EXISTS retail_de
 MANAGED LOCATION 'abfss://catalog-root@retaildesadc.dfs.core.windows.net/';
 ```
 
-**3.5 External locations + schemas** for each layer, same credential:
+**3.5 External locations + schemas** for each layer, using the same credential `cred-retail-de`:
 ```
 ext-raw      abfss://raw@retaildesadc.dfs.core.windows.net/
 ext-bronze   abfss://bronze@retaildesadc.dfs.core.windows.net/
@@ -169,9 +173,11 @@ Run Now to verify the chain. **Job ID: `1035721459403107`** — needed by the AD
 
 ## 6. ADF orchestration
 
-ADF has a native **Databricks "Job" activity** (GA'd from preview mid-2025) — no REST-API workaround needed, it triggers an existing Job by name and awaits completion.
+ADF's managed identity added to Databricks SP; In ADF Studio, Databricks added as a linked service. 
+<br>
+Construct ADF pipeline to wrap up the DB Notebook Job. In this setup, ADF pipeline only has 1 activity, but in practice can contain multi-steps. 
 
-**6.1 Auth: ADF's managed identity → Databricks, no stored secret.**
+**6.1 Auth: ADF's managed identity add to Databricks, no stored secret.**
 ```bash
 az datafactory show --resource-group rg-retail-de --factory-name adf-retail-de-dc --query identity
 # principalId: 2f449f4e-845d-4536-a960-d5dece2dc52f
@@ -179,6 +185,8 @@ az datafactory show --resource-group rg-retail-de --factory-name adf-retail-de-d
 az ad sp show --id 2f449f4e-845d-4536-a960-d5dece2dc52f --query appId -o tsv
 # appId: 871c1918-db93-4566-a97e-cb800bad235f
 ```
+This managed identity lets ADF access DBW. 
+
 Databricks **account console** → User management → Service principals → Add:
 - **Microsoft Entra ID managed** (not "Databricks managed" — that creates an unrelated new identity; Entra ID managed links to the *actual* ADF identity via the Application ID above)
 - Name `adf-retail-de-dc`, paste the `appId`
@@ -214,7 +222,7 @@ Debug → confirm success
 
 **7.1** Portal → Azure DevOps Organizations → Create org `retail-de-lab` → New project `az-retail-pipe` (auto-creates a Repos git repo of the same name).
 
-**7.2** PAT (org → User settings → Personal access tokens) as push credential. Cache it (Mac):
+**7.2 PAT for local push** PAT (DevOps org → User settings → Personal access tokens) as push credential. Cache it (Mac):
 ```bash
 git config --global credential.helper osxkeychain
 ```
@@ -227,7 +235,6 @@ git push azure --all
 
 **7.4** Link the org to Entra ID (Organization settings → General → Microsoft Entra → Connect directory). Without this, ADF's Git configuration can't resolve the org/project at all.
 
-**⚠ Gotcha**: `chenmuye5230@gmail.com` is a personal Microsoft Account, not a native Entra ID account — connecting the directory can leave the DevOps UI (`dev.azure.com/me`) in a stuck/looping auth state for a few minutes, looking like the org and project were deleted. They weren't. Confirm via `dev.azure.com/<org>/_projects` directly, or Portal → search "Azure DevOps Organizations", before assuming data loss.
 
 **7.5** Organization Settings → Policies → **allow external guests** (needed since this is a cross-tenant MSA scenario).
 
