@@ -26,8 +26,8 @@ jobs:
           inlineScript: |
             az deployment group create \
               --resource-group rg-retail-de \
-              --template-file ../adf_publish/ARMTemplateForFactory.json \
-              --parameters ../adf_publish/ARMTemplateParametersForFactory.json
+              --template-file ../adf_publish/adf-retail-de-dc/ARMTemplateForFactory.json \
+              --parameters ../adf_publish/adf-retail-de-dc/ARMTemplateParametersForFactory.json
 
   - job: SyncDatabricksRepo
     displayName: 'Pull latest main into Databricks Repos'

@@ -274,7 +274,7 @@ A real production setup connects Repos before creating any Job tasks, so this re
 
 DevOps yaml pipeline: Automate (on merge) manual Save/Publish in ADF and Commit & Push in Databricks Repos. 
 
-#### 9.1. Create service connection
+#### 9.1. Create service connection for DevOps to DBW
 ```
 DevOps project setting; new Service Connection 
 -> Resource Manager; service principal (auto) 
@@ -294,6 +294,19 @@ Register the DevOps SP with Databricks.
 DBW repo folder Sharing (permissions): add this SP appID, grant Can Edit. 
 
 
+#### 9.2. Trigger DevOps pipeline
+
+Note previously we have an ADF pipeline
+
+- DevOps Pipelines create new;  code - Azure Repos Git;
+- select repo;
+- Configure: Existing Azure Pipelines YAML file;
+- Branch: `main`;  path: `/azure-pipelines.yml`;
+- Run. 
+
+The 1st run registers the pipeline as a permanent object in DevOps.
+<br>
+Check DeployADF job: Service Connection's role on RG is Contributor. (Project setting, service connctions roles).
 
 
 ---
@@ -332,3 +345,20 @@ An Azure service (ADF, DevOps) needs to call Databricks...
 - DBW User Identity & Acccess: Add this appID as a new Service Principal. Type: Microsoft Entra ID managed;
 - Grant it permissions. 
 
+
+#### 2. Pipelines in the stack
+1. Databricks job `retail_de_medallion_pipeline` in DBW.
+<br>
+- 'How does bronze become gold?'
+- Notebook tasks chained in order;
+- Triggered by ADF.
+
+2. ADF pipeline `pl_run_medallion_job` in ADF resources.
+- 'When/How do the jobs start`;
+- Activity `medallion_elt` triggering the DB job;
+- Scheduel trigger.
+
+3. DevOps pipeline `azure-pipelines.yml` in az-devops.
+- 'How does repo code run?`
+- CI/CD jobs triggered by a git push;
+- Triggered by push/merge to main.
