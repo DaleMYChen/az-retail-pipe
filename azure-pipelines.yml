@@ -47,5 +47,13 @@ jobs:
 
             export DATABRICKS_HOST="https://adb-7405615985153021.1.azuredatabricks.net"
 
-            REPO_ID=$(databricks workspace get-status /Workspace/Users/chenmuye5230@gmail.com/az-retail-pipe -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['object_id'])")
+            # List all repos and find the one matching your path
+            REPO_ID=$(databricks repos list -o json | python3 -c "
+            import sys, json
+            data = json.load(sys.stdin)
+            repos = data.get('repos', data) if isinstance(data, dict) else data
+            match = next(r for r in repos if r['path'] == '/Workspace/Users/chenmuye5230@gmail.com/az-retail-pipe')
+            print(match['id'])
+            ")
+
             databricks repos update "$REPO_ID" --branch main
