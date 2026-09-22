@@ -334,6 +334,11 @@ git push azure main
 If you ever edit a notebook inside Databricks Repos directly (rather than locally), that's a commit+push from within Databricks' own Git panel — separate credentials/flow again, using the PAT you configured in §8, not your local git config.
 
 
+#### Sync to Git remote
+```
+git push -u origin main
+```
+
 
 
 ## Patterns & Practice
