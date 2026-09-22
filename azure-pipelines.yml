@@ -40,9 +40,12 @@ jobs:
           scriptType: bash
           scriptLocation: inlineScript
           inlineScript: |
-            pip install databricks-cli --quiet
+            curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+            export PATH="$PATH:$HOME/.local/bin:$HOME/bin:/usr/local/bin"
+            databricks --version
+
             export DATABRICKS_HOST="https://adb-7405615985153021.1.azuredatabricks.net"
             export DATABRICKS_AZURE_RESOURCE_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
-            databricks repos update \
-              --path "/Repos/chenmuye5230@gmail.com/az-retail-pipe" \
-              --branch main
+
+            REPO_ID=$(databricks repos get-by-path /Repos/chenmuye5230@gmail.com/az-retail-pipe -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+            databricks repos update "$REPO_ID" --branch main
