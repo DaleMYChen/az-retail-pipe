@@ -50,6 +50,5 @@ jobs:
             export DATABRICKS_AZURE_RESOURCE_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
  
             REPO_ID=$(databricks workspace get-status /Workspace/Users/chenmuye5230@gmail.com/az-retail-pipe -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['object_id'])")
-            databricks repos update "$REPO_ID" --branch main
 
             databricks repos update "$REPO_ID" --branch main
