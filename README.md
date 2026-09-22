@@ -270,36 +270,31 @@ A real production setup connects Repos before creating any Job tasks, so this re
 
 ---
 
-## 9. Azure DevOps — YAML pipeline (not started)
+## 9. Azure DevOps — YAML pipeline
 
-One pipeline, two jobs, triggered on merge to `main`:
-```yaml
-trigger:
-  branches:
-    include: [main]
+DevOps yaml pipeline: Automate (on merge) manual Save/Publish in ADF and Commit & Push in Databricks Repos. 
 
-jobs:
-  - job: DeployADF
-    steps:
-      - task: AzureCLI@2   # publishes ADF's ARM template (from adf_publish) to the live factory
-        inputs:
-          azureSubscription: 'retail-de-service-connection'
-          scriptType: bash
-          scriptLocation: inlineScript
-          inlineScript: |
-            az datafactory ... # deploy ARM template
-
-  - job: SyncDatabricksRepo
-    steps:
-      - task: AzureCLI@2   # tells the Databricks workspace's prod Repo to pull latest main
-        inputs:
-          azureSubscription: 'retail-de-service-connection'
-          scriptType: bash
-          scriptLocation: inlineScript
-          inlineScript: |
-            databricks repos update --path /Repos/prod/retail-azure-de-project --branch main
+#### 9.1. Create service connection
 ```
-Needs a **Service Connection** (Azure DevOps → Project settings → Service connections → Azure Resource Manager, scoped to `rg-retail-de`) before this pipeline can run — not yet created.
+DevOps project setting; new Service Connection 
+-> Resource Manager; service principal (auto) 
+-> scope: subscription;  resource group: rg-retail-de
+-> name: retail-de-service-connection
+-> Grant access permissions to all pipelines
+```
+
+Register the DevOps SP with Databricks. 
+<br>
+- Service connection list: manage `retail-de-service-connection`, copy appID. 
+<br>
+`9504eaff-a1e7-4d12-87d9-d00397197493`
+- DBW user setting; Identity and Access - SP add new; Entra ID managed; paste appID. 
+- name: `retail-de-service-connection`; add to DBW. 
+
+DBW repo folder Sharing (permissions): add this SP appID, grant Can Edit. 
+
+
+
 
 ---
 
@@ -324,4 +319,16 @@ git push azure main
 
 #### Databricks to local. 
 If you ever edit a notebook inside Databricks Repos directly (rather than locally), that's a commit+push from within Databricks' own Git panel — separate credentials/flow again, using the PAT you configured in §8, not your local git config.
+
+
+
+
+## Patterns & Practice
+
+#### 1. Azure services linked to DB: no-secret auth.
+An Azure service (ADF, DevOps) needs to call Databricks...
+- The service will have its Entra identity: ADF managed identity, DevOps service connection;
+- Get appID from the identity;
+- DBW User Identity & Acccess: Add this appID as a new Service Principal. Type: Microsoft Entra ID managed;
+- Grant it permissions. 
 

@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+  - job: DeployADF
+    displayName: 'Deploy ADF pipeline from adf_publish'
+    steps:
+      - checkout: self
+        persistCredentials: 'true'
+
+      - script: |
+          git fetch origin adf_publish
+          git worktree add ../adf_publish origin/adf_publish
+        displayName: 'Fetch adf_publish branch'
+
+      - task: AzureCLI@2
+        displayName: 'az deployment group create'
+        inputs:
+          azureSubscription: 'retail-de-service-connection'
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            az deployment group create \
+              --resource-group rg-retail-de \
+              --template-file ../adf_publish/ARMTemplateForFactory.json \
+              --parameters ../adf_publish/ARMTemplateParametersForFactory.json
+
+  - job: SyncDatabricksRepo
+    displayName: 'Pull latest main into Databricks Repos'
+    dependsOn: DeployADF
+    steps:
+      - task: AzureCLI@2
+        displayName: 'databricks repos update'
+        inputs:
+          azureSubscription: 'retail-de-service-connection'
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            pip install databricks-cli --quiet
+            export DATABRICKS_HOST="https://adb-7405615985153021.1.azuredatabricks.net"
+            export DATABRICKS_AZURE_RESOURCE_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
+            databricks repos update \
+              --path "/Repos/chenmuye5230@gmail.com/az-retail-pipe" \
+              --branch main
