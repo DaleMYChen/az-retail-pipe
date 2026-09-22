@@ -37,6 +37,7 @@ jobs:
         displayName: 'databricks repos update'
         inputs:
           azureSubscription: 'retail-de-service-connection'
+          useGlobalConfig: true 
           scriptType: bash
           scriptLocation: inlineScript
           inlineScript: |
@@ -45,7 +46,6 @@ jobs:
             databricks --version
 
             export DATABRICKS_HOST="https://adb-7405615985153021.1.azuredatabricks.net"
-            export DATABRICKS_AZURE_RESOURCE_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
 
-            REPO_ID=$(databricks workspace get-status /Repos/chenmuye5230@gmail.com/az-retail-pipe -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['object_id'])")
+            REPO_ID=$(databricks workspace get-status /Workspace/Users/chenmuye5230@gmail.com/az-retail-pipe -o json | python3 -c "import sys,json; print(json.load(sys.stdin)['object_id'])")
             databricks repos update "$REPO_ID" --branch main
