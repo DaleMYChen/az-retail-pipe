@@ -47,12 +47,19 @@ jobs:
 
             export DATABRICKS_HOST="https://adb-7405615985153021.1.azuredatabricks.net"
 
-            # List all repos and find the one matching your path
+            export DATABRICKS_AZURE_RESOURCE_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-retail-de/providers/Microsoft.Databricks/workspaces/dbw-retail-de"
+ 
             REPO_ID=$(databricks repos list -o json | python3 -c "
             import sys, json
             data = json.load(sys.stdin)
             repos = data.get('repos', data) if isinstance(data, dict) else data
-            match = next(r for r in repos if r['path'] == '/Workspace/Users/chenmuye5230@gmail.com/az-retail-pipe')
+            print('Visible repos:', file=sys.stderr)
+            for r in repos:
+                print(f\"  {r.get('path')}\", file=sys.stderr)
+            match = next((r for r in repos if r.get('path', '').endswith('/az-retail-pipe')), None)
+            if match is None:
+                print('ERROR: no repo path ending in /az-retail-pipe found', file=sys.stderr)
+                sys.exit(1)
             print(match['id'])
             ")
 
